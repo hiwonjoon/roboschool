@@ -26,7 +26,7 @@ register(
 register(
     id='RoboschoolReacher-v1',
     entry_point='roboschool:RoboschoolReacher',
-    max_episode_steps=150,
+    max_episode_steps=500,
     reward_threshold=18.0,
     tags={ "pg_complexity": 1*1000000 },
     )

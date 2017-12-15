@@ -14,8 +14,8 @@ class RoboschoolMujocoXmlEnv(gym.Env):
         'video.frames_per_second': 60
         }
 
-    VIDEO_W = 600  # for video showing the robot, not for camera ON the robot
-    VIDEO_H = 400
+    VIDEO_W = 64 # for video showing the robot, not for camera ON the robot
+    VIDEO_H = 64
 
     def __init__(self, model_xml, robot_name, action_dim, obs_dim):
         self.scene = None
