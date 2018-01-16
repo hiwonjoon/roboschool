@@ -10,6 +10,8 @@ class RoboschoolReacher(RoboschoolMujocoXmlEnv):
     def __init__(self):
         RoboschoolMujocoXmlEnv.__init__(self, 'reacher.xml', 'body0', action_dim=2, obs_dim=9)
         self.fixed = None
+        self.demo_frames = None
+        self.sparse_reward = None
         self.check = deque(maxlen=40)
 
     def set_targets_color(self,colors):
@@ -23,6 +25,9 @@ class RoboschoolReacher(RoboschoolMujocoXmlEnv):
 
     def set_demo(self,frames):
         self.demo_frames = frames
+
+    def set_sparse_reward(self):
+        self.sparse_reward = True
 
     def create_single_player_scene(self):
         return SingleRobotEmptyScene(gravity=0.0, timestep=0.0165, frame_skip=1)
@@ -82,6 +87,27 @@ class RoboschoolReacher(RoboschoolMujocoXmlEnv):
             self.gamma_dot,
             ])
 
+    def calc_scene_state(self):
+        theta,      self.theta_dot = self.central_joint.current_relative_position()
+        self.gamma, self.gamma_dot = self.elbow_joint.current_relative_position()
+
+        ret = []
+        for i in range(4):
+            x, _ = self.jdict["target_%d_x"%i].current_position()
+            y, _ = self.jdict["target_%d_y"%i].current_position()
+            t = self.parts["target%d"%i]
+            vec = np.array(self.fingertip.pose().xyz()) - np.array(t.pose().xyz())
+            ret += [x,y,vec[0],vec[1]]
+
+        return np.array(
+            ret + [
+            np.cos(theta),
+            np.sin(theta),
+            self.theta_dot,
+            self.gamma,
+            self.gamma_dot,
+            ])
+
     def calc_potential(self):
         return -100 * np.linalg.norm(self.to_target_vec)
 
@@ -91,11 +117,17 @@ class RoboschoolReacher(RoboschoolMujocoXmlEnv):
         self.scene.global_step()
 
         state = self.calc_state()  # sets self.to_target_vec
+        scene_state = self.calc_scene_state()
         img = self.render('rgb_array')
 
         # Calculating Rewards
-        if( hasattr(self,'demo_frames') ):
+        if( self.demo_frames is not None ):
             self.rewards = [ -1. * np.linalg.norm(img/255. - self.demo_frames[self.frame]/255.) / img.size, 0., 0.]
+        elif( self.sparse_reward ):
+            if( (np.linalg.norm(self.to_target_vec) <= 0.02) ):
+                self.rewards = [ 1. ]
+            else :
+                self.rewards = [ -0.1 ]
         else:
             potential_old = self.potential
             self.potential = self.calc_potential()
@@ -124,13 +156,13 @@ class RoboschoolReacher(RoboschoolMujocoXmlEnv):
 
 
         self.frame  += 1
-        if( hasattr(self,'demo_frames') ):
+        if( self.demo_frames is not None ):
             self.done += self.frame >= len(self.demo_frames)
         else :
             self.done += len(self.current_goals) == 0
         self.reward += sum(self.rewards)
         self.HUD(state, a, False)
-        return state, sum(self.rewards), self.done, {'subtask':subtask, 'complete':complete, 'img': img}
+        return state, sum(self.rewards), self.done, {'subtask':subtask, 'complete':complete, 'img': img, 'scene_state': scene_state}
 
     def camera_adjust(self):
         #x, y, z = self.fingertip.pose().xyz()
