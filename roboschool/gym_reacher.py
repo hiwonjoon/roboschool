@@ -70,6 +70,7 @@ class RoboschoolReacher(RoboschoolMujocoXmlEnv):
         if( self.fixed is not None ):
             self.np_random.set_state(_state)
 
+        self.init_img = None
 
     def apply_action(self, a):
         assert( np.isfinite(a).all() )
@@ -127,12 +128,14 @@ class RoboschoolReacher(RoboschoolMujocoXmlEnv):
         state = self.calc_state()  # sets self.to_target_vec
         scene_state = self.calc_scene_state()
 
+        if( self.init_img is None ):
+            self.init_img = self.render('rgb_array')
         old_img = getattr(self, 'img', self.render('rgb_array'))
         self.img = self.render('rgb_array')
 
         # Calculating Rewards
         if( self.tf_reward_fn is not None ):
-            self.rewards = [self.tf_reward_fn(old_img,self.img)]
+            self.rewards = [self.tf_reward_fn(self.init_img,old_img,self.img)]
         elif( self.demo_frames is not None ):
             self.rewards = [ -10. * np.linalg.norm(img/255. - self.demo_frames[self.frame]/255.) / img.size, 0., 0.]
         elif( self.simple_reward ):
