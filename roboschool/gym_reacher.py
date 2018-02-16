@@ -164,7 +164,7 @@ class RoboschoolReacher(RoboschoolMujocoXmlEnv):
         subtask = self.current_goals[0]
 
         # Change goals
-        if( (np.linalg.norm(self.to_target_vec) <= 0.015) ):
+        if( (np.linalg.norm(self.to_target_vec) <= 0.05) ):
             self.check.append(True)
             complete = True
         else :
