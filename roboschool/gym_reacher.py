@@ -5,8 +5,17 @@ import numpy as np
 import os, sys
 import math
 from collections import deque
+import colorsys
 
 class RoboschoolReacher(RoboschoolMujocoXmlEnv):
+    r_state = np.random.get_state()
+    import colorsys
+    COLOR_SET = [tuple(int(c*255) for c in colorsys.hsv_to_rgb(h/360.,1,1))
+                 for h in range(0,360,20) ]
+    np.random.seed(0)
+    np.random.shuffle(COLOR_SET)
+    np.random.set_state(r_state)
+
     def __init__(self):
         RoboschoolMujocoXmlEnv.__init__(self, 'reacher.xml', 'body0', action_dim=2, obs_dim=9)
         self.fixed = None
