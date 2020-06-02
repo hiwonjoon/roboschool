@@ -2,57 +2,43 @@ UNAME := $(shell uname -s)
 OBJDIRR=.build-release
 OBJDIRD=.build-debug
 
-ifeq ($(UNAME),Linux)
-  PKG  =pkg-config
-  MOC  =moc -qt=5
-  LIBS =-L/usr/lib64 -lm -lGL -L$(HOME)/.boost/lib
-  INC  =-I/usr/include
-  BOOST_MT=
-  ifneq ($(USE_PYTHON3),0)
-    HAVE_PYTHON3=$(shell which python3)
-  endif
-  ifneq ($(HAVE_PYTHON3),)
-    PYTHON = $(shell python3 -c "import sys; print('%i.%i' % sys.version_info[:2])")
-    ifneq (,$(findstring linuxbrew,$(HAVE_PYTHON3)))
-      $(info Linux, python3, linuxbrew branch)
-      BOOST_PYTHON3_POSTFIX = 3
-    else ifneq (,$(findstring conda,$(HAVE_PYTHON3)))
-      $(info Linux, python3, anaconda branch, will query Ubuntu python3 for boost_python)
-      BOOST_PYTHON3_POSTFIX = -py$(shell /usr/bin/python3 -c "import sys; print('%i%i' % sys.version_info[:2])")
-    else
-      $(info Linux, python3, Ubuntu branch)
-      BOOST_PYTHON3_POSTFIX = $(shell python3 -c "import sys; print('%i%i' % sys.version_info[:2])")
-      # BOOST_PYTHON3_POSTFIX = 3
-    endif
-  else
-    $(info Linux, python 2 branch)
-    PYTHON = $(shell python -c "import sys; print('%i.%i' % sys.version_info[:2])")
-  endif
-  RPATH=-Wl,-z,origin -Wl,--disable-new-dtags,-rpath,'$(BULLET_PATH)/lib',-rpath,'$(HOME)/.boost/lib'
+ifndef CONDA_PREFIX
+  $(error CONDA_PREFIX is undefined)
 endif
 
-ifeq ($(UNAME),Darwin)
-  ifneq ("$(wildcard /usr/local/opt/qt5/bin/moc"), "")
-    $(info Mac, assumed python3, homebrew branch)
-    MOC =/usr/local/opt/qt5/bin/moc
-  else
-    $(info Mac, assumed python3, anaconda branch)
-    MOC =moc
-  endif
-  PKG   =pkg-config
-  LIBS  =-framework OpenGL
-  INC   =-I/System/Library/Frameworks/OpenGL.framework/Headers
-  BOOST_PYTHON3_POSTFIX = 3
-  BOOST_MT=-mt
-  PYTHON = $(shell python3 -c "import sys; print('%i.%i' % sys.version_info[:2])")
-  RPATH = -Wl,-undefined,dynamic_lookup
+ifeq ($(UNAME),Linux)
+  BOOST_PYTHON3_POSTFIX = $(shell python3 -c "import sys; print('%i%i' % sys.version_info[:2])")
+
+  BOOST_PYTHON3_VERSION = $(shell python3 -c "import sys; print('%i.%i' % sys.version_info[:2])")
+
+  PKG  =pkg-config
+  MOC  =moc
+  LIBS =-L$(CONDA_PREFIX)/lib64 -lm -lGL
+  INC  =-I$(CONDA_PREFIX)/include -I$(CONDA_PREFIX)/include/python$(BOOST_PYTHON3_VERSION)m
+
+  #RPATH=-Wl,-z,origin -Wl,--disable-new-dtags,-rpath,'$(BULLET_PATH)/lib',-rpath,'$(HOME)/.boost/lib'
 endif
+
+#ifeq ($(UNAME),Darwin)
+#  ifneq ("$(wildcard /usr/local/opt/qt5/bin/moc"), "")
+#    $(info Mac, assumed python3, homebrew branch)
+#    MOC =/usr/local/opt/qt5/bin/moc
+#  else
+#    $(info Mac, assumed python3, anaconda branch)
+#    MOC =moc
+#  endif
+#  PKG   =pkg-config
+#  LIBS  =-framework OpenGL
+#  INC   =-I/System/Library/Frameworks/OpenGL.framework/Headers
+#  BOOST_PYTHON3_POSTFIX = 3
+#  BOOST_MT=-mt
+#  PYTHON = $(shell python3 -c "import sys; print('%i.%i' % sys.version_info[:2])")
+#  RPATH = -Wl,-undefined,dynamic_lookup
+#endif
 
 INC += `$(PKG) --cflags Qt5Widgets Qt5OpenGL assimp bullet`
 LIBS += `$(PKG) --libs Qt5Widgets Qt5OpenGL assimp bullet`
-LIBS    += -lstdc++
-INC     += -I/usr/local/include/bullet
-LIBS    += $(RPATH) -lLinearMath -lBullet3Common -lBulletCollision -lBulletDynamics -lBulletInverseDynamics -lBulletSoftBody -lPhysicsClientC_API
+LIBS += -lstdc++ -lLinearMath -lBullet3Common -lBulletCollision -lBulletDynamics -lBulletInverseDynamics -lBulletSoftBody -lPhysicsClientC_API
 
 ifeq ($(PYTHON),2.7)
     BOOST_PYTHON = -lboost_python

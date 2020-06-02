@@ -24,9 +24,9 @@ class RoboschoolMujocoXmlEnv(gym.Env):
         self.scene = None
 
         high = np.ones([action_dim])
-        self.action_space = gym.spaces.Box(-high, high, dtype=np.float32)
+        self.action_space = gym.spaces.Box(-high, high) #, dtype=np.float32) # commented out to work with OpenAI gym lower version, such as 0.9.7
         high = np.inf*np.ones([obs_dim])
-        self.observation_space = gym.spaces.Box(-high, high, dtype=np.float32)
+        self.observation_space = gym.spaces.Box(-high, high) #, dtype=np.float32) # commented out to work with OpenAI gym lower version, such as 0.9.7
         self.seed()
 
         self.model_xml = model_xml
@@ -77,7 +77,10 @@ class RoboschoolMujocoXmlEnv(gym.Env):
         self.camera = self.scene.cpp_world.new_camera_free_float(self.VIDEO_W, self.VIDEO_H, "video_camera")
         return s
 
-    def render(self, mode='human'):
+    def render(self, mode='human', close=False):
+        if close: # added to work with OpenAI gym lower version, such as 0.9.7
+            return
+
         if mode=="human":
             self.scene.human_render_detected = True
             return self.scene.cpp_world.test_window()
